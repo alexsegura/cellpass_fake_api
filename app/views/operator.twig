@@ -1,0 +1,9 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+    <form method="post">
+        <input type="hidden" name="transaction_id" value="{{ transaction_id }}">
+        <input type="submit" name="cancel" value="Cancel">
+        <input type="submit" name="confirm" value="Confirm">
+    </form>
+{% endblock %}

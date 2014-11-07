@@ -1,0 +1,35 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+    <table>
+        <th>transaction_id</th>
+        <th>service_id</th>
+        <th>editor_id</th>
+        <th>customer_editor_id</th>
+        <th>url_ok</th>
+        <th>url_ko</th>
+        <th>success</th>
+        <th>ctime</th>
+        <th>mtime</th>
+    {% for row in rows %}
+        <tr>
+            <td>{{ row.transaction_id }}</td>
+            <td>{{ row.service_id }}</td>
+            <td>{{ row.editor_id }}</td>
+            <td>{{ row.customer_editor_id }}</td>
+            <td>{{ row.url_ok }}</td>
+            <td>{{ row.url_ko }}</td>
+            <td>{{ row.success|var_export }}</td>
+            <td>{{ row.ctime }}</td>
+            <td>{{ row.mtime }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <hr>
+
+    <form method="post" action="/db/clear/">
+        <button type="submit">Clear database</button>
+    </form>
+
+{% endblock %}
