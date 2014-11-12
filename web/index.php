@@ -6,6 +6,7 @@ ini_set('display_errors', 'on');
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Cellpass;
 
 $app = new Silex\Application();
 $app['debug'] = true;
@@ -25,23 +26,15 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
     ),
 ));
 
-$app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_transaction (
-    transaction_id TEXT NOT NULL,
-    service_id INTEGER NOT NULL,
-    editor_id INTEGER NOT NULL,
-    customer_editor_id TEXT DEFAULT NULL,
-    url_ok TEXT NOT NULL,
-    url_ko TEXT DEFAULT NULL,
-    success INTEGER DEFAULT NULL,
-    ctime TEXT NOT NULL,
-    mtime TEXT NOT NULL
-)');
+include __DIR__ . '/../app/inc/init_db.php';
 
 //
 // Twig filters
 //
 
 $app['twig']->addFilter('var_export', new Twig_Filter_Function('var_export'));
+
+$db = new Cellpass\Db($app['db']);
 
 //
 // Routing
@@ -53,8 +46,6 @@ $app->get('/db/', function() use ($app) {
     $stmt->execute();
 
     $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-    print_r($_SERVER);
 
     array_walk($rows, function(&$row) {
         $row['success'] = $row['success'] === null ? null : (bool) $row['success'];
@@ -108,7 +99,9 @@ $app->post('/operator/', function(Request $request) use ($app) {
 
     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-    return $app->redirect($confirm ? $row['url_ok'] : $row['url_ko']);
+    $url = ($confirm ? $row['url_ok'] : $row['url_ko']) . '?transaction_id=' . $transaction_id;
+
+    return $app->redirect($url);
 });
 
 $app->get('/cellpass/init/', function (Request $request) use ($app) {
@@ -124,15 +117,16 @@ $app->get('/cellpass/init/', function (Request $request) use ($app) {
         $url_ko = $url_ok;
     }
 
-    $sql = 'INSERT INTO cellpass_transaction (transaction_id, service_id, editor_id, customer_editor_id, url_ok, url_ko, ctime, mtime)'
+    $sql = 'INSERT INTO cellpass_transaction (transaction_id, service_id, editor_id, customer_editor_id, state, url_ok, url_ko, ctime, mtime)'
         . ' VALUES '
-        . '(:transaction_id, :service_id, :editor_id, :customer_editor_id, :url_ok, :url_ko, DATETIME("now"), DATETIME("now"))';
+        . '(:transaction_id, :service_id, :editor_id, :customer_editor_id, :state, :url_ok, :url_ko, DATETIME("now"), DATETIME("now"))';
 
     $stmt = $app['db']->prepare($sql);
     $stmt->bindValue(':transaction_id', $transaction_id);
     $stmt->bindValue(':service_id', $service_id);
     $stmt->bindValue(':editor_id', $editor_id);
     $stmt->bindValue(':customer_editor_id', $customer_editor_id);
+    $stmt->bindValue(':state', 'init');
     $stmt->bindValue(':url_ok', $url_ok);
     $stmt->bindValue(':url_ko', $url_ko);
     $stmt->execute();
@@ -146,17 +140,14 @@ $app->get('/cellpass/init/', function (Request $request) use ($app) {
     return $app->json($json);
 });
 
-$app->get('/cellpass/end/', function (Request $request) use ($app) {
+$app->get('/cellpass/end/', function (Request $request) use ($app, $db) {
 
     $transaction_id = $request->query->get('transaction_id');
     $editor_id = $request->query->get('editor_id');
 
-    $stmt = $app['db']->prepare('SELECT * FROM cellpass_transaction WHERE transaction_id = :transaction_id AND editor_id = :editor_id');
-    $stmt->bindValue(':transaction_id', $transaction_id);
-    $stmt->bindValue(':editor_id', $editor_id);
-    $stmt->execute();
+    $db->endTransaction($transaction_id, $editor_id);
 
-    if (!$row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+    if (!$row = $db->getTransaction($transaction_id)) {
         // TODO Error handling
     }
 
@@ -167,8 +158,9 @@ $app->get('/cellpass/end/', function (Request $request) use ($app) {
         'customer_operator_id' => null,
         'customer_ip' => $_SERVER['REMOTE_ADDR'],
         'state' => 'end',
-        'state_value' => '',
+        'state_value' => '', // Client cancel the billing
         'error' => '',
+        'error_code' => !$row['success'] ? 'CLIENT_CANCEL' : '', // CLIENT_CANCEL
         'ctime' => $row['ctime'],
         'mtime' => $row['mtime'],
         'success' => $row['success'] === null ? null : (bool) $row['success'],
@@ -178,7 +170,7 @@ $app->get('/cellpass/end/', function (Request $request) use ($app) {
         'customer_id' => null,
         'customer_editor_id' => $row['customer_editor_id'],
         'offer_id' => null,
-        'mode_used' => '',
+        'mode_used' => 'auto_best',
         'customer_handset_type' => 'PC',
         'customer_operator' => 'SFR',
         'customer_operator_type' => 'box',

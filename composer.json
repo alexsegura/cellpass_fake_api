@@ -3,5 +3,10 @@
         "silex/silex": "~1.1",
         "twig/twig": ">=1.8,<2.0-dev",
         "doctrine/dbal": "2.2.*"
+    },
+    "autoload": {
+      "psr-4": {
+          "Cellpass\\": "app/src/Cellpass"
+      }
     }
 }
