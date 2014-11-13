@@ -21,6 +21,15 @@ class CustomerRepository
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    public function findByEditorId($editor_id)
+    {
+        $stmt = $this->conn->prepare('SELECT * FROM cellpass_customer WHERE editor_id = :editor_id');
+        $stmt->bindValue(':editor_id', $editor_id);
+        $stmt->execute();
+
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
     public function create(array $data = array())
     {
         $sql = 'INSERT INTO cellpass_customer (editor_id) VALUES (:editor_id)';

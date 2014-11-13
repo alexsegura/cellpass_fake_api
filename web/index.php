@@ -113,9 +113,11 @@ $app->post('/operator/{operator}/', function(Request $request) use ($app) {
 
     if ($success) {
 
-        $customer = $app['repository.customer']->create([
-            'editor_id' => $transaction['customer_editor_id']
-        ]);
+        if (!$customer = $app['repository.customer']->findByEditorId($transaction['customer_editor_id'])) {
+            $customer = $app['repository.customer']->create([
+                'editor_id' => $transaction['customer_editor_id']
+            ]);
+        }
 
         $app['repository.subscription']->create([
             'id' => $transaction['id'],
@@ -168,6 +170,8 @@ $app->get('/cellpass/end/', function (Request $request) use ($app) {
 
     $offer = $app['repository.offer']->find($transaction['offer_id']);
 
+    $customer = $app['repository.customer']->findByEditorId($transaction['customer_editor_id']);
+
     $json = [
         'id' => $transaction_id,
         'url_ok' => $transaction['url_ok'],
@@ -184,7 +188,7 @@ $app->get('/cellpass/end/', function (Request $request) use ($app) {
         'service_id' => $offer['service_id'],
         'type_asked' => null,
         'mode_asked' => '',
-        'customer_id' => 123,
+        'customer_id' => $customer['id'],
         'customer_editor_id' => $transaction['customer_editor_id'],
         'offer_id' => $offer['id'],
         'mode_used' => 'auto_best',
