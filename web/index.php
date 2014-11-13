@@ -70,6 +70,7 @@ require __DIR__ . '/../app/controllers/services.php';
 require __DIR__ . '/../app/controllers/offers.php';
 require __DIR__ . '/../app/controllers/transactions.php';
 require __DIR__ . '/../app/controllers/subscriptions.php';
+require __DIR__ . '/../app/controllers/customers.php';
 
 $app->get('/router/', function(Request $request) use ($app) {
 
