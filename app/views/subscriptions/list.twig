@@ -9,12 +9,14 @@
       <th>#</th>
       <th>Customer #</th>
       <th>Offer #</th>
+      <th>Date Sub</th>
     </thead>
     {% for subscription in subscriptions %}
     <tr>
       <td><a href="#">{{subscription.id}}</a></td>
       <td>{{subscription.customer_id}}</td>
       <td>{{subscription.offer_id}}</td>
+      <td>{{subscription.date_sub}}</td>
     </tr>
     {% endfor %}
   </table>
