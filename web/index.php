@@ -34,142 +34,159 @@ include __DIR__ . '/../app/inc/init_db.php';
 
 $app['twig']->addFilter('var_export', new Twig_Filter_Function('var_export'));
 
-$db = new Cellpass\Db($app['db']);
+$app['repository.service'] = $app->share(function($app) {
+    return new Cellpass\ServiceRepository($app['db']);
+});
+
+$app['repository.offer'] = $app->share(function($app) {
+    return new Cellpass\OfferRepository($app['db']);
+});
+
+$app['repository.transaction'] = $app->share(function($app) {
+    return new Cellpass\TransactionRepository($app['db']);
+});
+
+$app['repository.customer'] = $app->share(function($app) {
+    return new Cellpass\CustomerRepository($app['db']);
+});
+
+$app['repository.subscription'] = $app->share(function($app) {
+    return new Cellpass\SubscriptionRepository($app['db']);
+});
+
+$app['operators'] = $app->share(function($app) {
+    return ['bt', 'orange', 'sfr', 'free'];
+});
 
 //
 // Routing
 //
 
-$app->get('/db/', function() use ($app) {
-
-    $stmt = $app['db']->prepare('SELECT * FROM cellpass_transaction');
-    $stmt->execute();
-
-    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-    array_walk($rows, function(&$row) {
-        $row['success'] = $row['success'] === null ? null : (bool) $row['success'];
-    });
-
-    return $app['twig']->render('db.twig', [
-        'rows' => $rows
-    ]);
+$app->get('/admin/', function() use ($app) {
+    return $app['twig']->render('index.twig');
 });
 
-$app->post('/db/clear/', function() use ($app) {
+require __DIR__ . '/../app/controllers/services.php';
+require __DIR__ . '/../app/controllers/offers.php';
+require __DIR__ . '/../app/controllers/transactions.php';
+require __DIR__ . '/../app/controllers/subscriptions.php';
 
-    $stmt = $app['db']->prepare('DELETE FROM cellpass_transaction');
-    $stmt->execute();
-
-    return $app->redirect('/db/');
-});
-
-$app->get('/operator/', function(Request $request) use ($app) {
+$app->get('/router/', function(Request $request) use ($app) {
 
     $transaction_id = $request->query->get('transaction_id');
 
-    $stmt = $app['db']->prepare('SELECT url_ok, url_ko FROM cellpass_transaction WHERE transaction_id = :transaction_id');
-    $stmt->bindValue(':transaction_id', $transaction_id);
-    $stmt->execute();
+    $transaction = $app['repository.transaction']->find($transaction_id);
+    $offer = $app['repository.offer']->find($transaction['offer_id']);
 
-    if (!$row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-        // TODO Error handling
+    $operator = $offer['operator'];
+
+    return $app->redirect("/operator/{$operator}/?transaction_id={$transaction_id}");
+});
+
+$app->get('/operator/{operator}/', function(Request $request) use ($app) {
+
+    $transaction_id = $request->query->get('transaction_id');
+
+    if (!$transaction = $app['repository.transaction']->find($transaction_id)) {
+        // TODO 404
     }
 
+    $app['repository.transaction']->updateState($transaction_id, 'route_to_billing');
+
+    $offer = $app['repository.offer']->find($transaction['offer_id']);
+
     return $app['twig']->render('operator.twig', [
-        'transaction_id' => $transaction_id,
-        'url_ok' => $row['url_ok'],
-        'url_ko' => $row['url_ko']
+        'transaction' => $transaction,
+        'offer' => $offer
     ]);
 });
 
-$app->post('/operator/', function(Request $request) use ($app) {
+$app->post('/operator/{operator}/', function(Request $request) use ($app) {
 
-    $confirm = $request->request->get('confirm');
+    $success = (null !== $request->request->get('confirm'));
     $transaction_id = $request->query->get('transaction_id');
 
-    $stmt = $app['db']->prepare('UPDATE cellpass_transaction SET success = :success, mtime = DATETIME("NOW") WHERE transaction_id = :transaction_id');
-    $stmt->bindValue(':success', $confirm ? 1 : 0);
-    $stmt->bindValue(':transaction_id', $transaction_id);
-    $stmt->execute();
+    $app['repository.transaction']->updateSuccess($transaction_id, $success);
 
-    $stmt = $app['db']->prepare('SELECT url_ok, url_ko FROM cellpass_transaction WHERE transaction_id = :transaction_id');
-    $stmt->bindValue(':transaction_id', $transaction_id);
-    $stmt->execute();
+    $transaction = $app['repository.transaction']->find($transaction_id);
 
-    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+    if ($success) {
 
-    $url = ($confirm ? $row['url_ok'] : $row['url_ko']) . '?transaction_id=' . $transaction_id;
+        $customer = $app['repository.customer']->create([
+            'editor_id' => $transaction['customer_editor_id']
+        ]);
+
+        $app['repository.subscription']->create([
+            'id' => $transaction['id'],
+            'customer_id' => $customer['id'],
+            'offer_id' => $transaction['offer_id']
+        ]);
+
+        $redirect_url = $transaction['url_ok'];
+    } else {
+        $redirect_url = $transaction['url_ko'] ?: $transaction['url_ok'];
+    }
+
+    $url = $redirect_url . '?transaction_id=' . $transaction_id;
 
     return $app->redirect($url);
 });
 
 $app->get('/cellpass/init/', function (Request $request) use ($app) {
 
-    $transaction_id = md5(time());
-    $service_id = $request->query->get('service_id');
-    $editor_id = $request->query->get('editor_id');
-    $customer_editor_id = $request->query->get('customer_editor_id');
-    $url_ok = $request->query->get('url_ok');
-    $url_ko = $request->query->get('url_ko');
+    $data = $request->query->all();
 
-    if (!$url_ko) {
-        $url_ko = $url_ok;
-    }
+    $offerRepository = $app['repository.offer'];
+    $offers = $offerRepository->findByServiceId($data['service_id']);
 
-    $sql = 'INSERT INTO cellpass_transaction (transaction_id, service_id, editor_id, customer_editor_id, state, url_ok, url_ko, ctime, mtime)'
-        . ' VALUES '
-        . '(:transaction_id, :service_id, :editor_id, :customer_editor_id, :state, :url_ok, :url_ko, DATETIME("now"), DATETIME("now"))';
+    shuffle($offers);
+    $offer = array_shift($offers);
 
-    $stmt = $app['db']->prepare($sql);
-    $stmt->bindValue(':transaction_id', $transaction_id);
-    $stmt->bindValue(':service_id', $service_id);
-    $stmt->bindValue(':editor_id', $editor_id);
-    $stmt->bindValue(':customer_editor_id', $customer_editor_id);
-    $stmt->bindValue(':state', 'init');
-    $stmt->bindValue(':url_ok', $url_ok);
-    $stmt->bindValue(':url_ko', $url_ko);
-    $stmt->execute();
+    $data['offer_id'] = $offer['id'];
+
+    $transaction_id = $app['repository.transaction']->create($data);
 
     $json = [
         'transaction_id' => $transaction_id,
-        'url' => 'http://' . $_SERVER['HTTP_HOST'] . '/operator/?transaction_id=' . $transaction_id,
+        'url' => 'http://' . $_SERVER['HTTP_HOST'] . '/router/?transaction_id=' . $transaction_id,
         'status' => 'success'
     ];
 
     return $app->json($json);
 });
 
-$app->get('/cellpass/end/', function (Request $request) use ($app, $db) {
+$app->get('/cellpass/end/', function (Request $request) use ($app) {
 
     $transaction_id = $request->query->get('transaction_id');
     $editor_id = $request->query->get('editor_id');
 
-    $db->endTransaction($transaction_id, $editor_id);
-
-    if (!$row = $db->getTransaction($transaction_id)) {
-        // TODO Error handling
+    if (!$transaction = $app['repository.transaction']->find($transaction_id)) {
+        // TODO 404
     }
+
+    $app['repository.transaction']->updateState($transaction_id, 'end');
+
+    $offer = $app['repository.offer']->find($transaction['offer_id']);
 
     $json = [
         'id' => $transaction_id,
-        'url_ok' => $row['url_ok'],
-        'url_ko' => $row['url_ko'],
+        'url_ok' => $transaction['url_ok'],
+        'url_ko' => $transaction['url_ko'],
         'customer_operator_id' => null,
         'customer_ip' => $_SERVER['REMOTE_ADDR'],
         'state' => 'end',
         'state_value' => '', // Client cancel the billing
         'error' => '',
-        'error_code' => !$row['success'] ? 'CLIENT_CANCEL' : '', // CLIENT_CANCEL
-        'ctime' => $row['ctime'],
-        'mtime' => $row['mtime'],
-        'success' => $row['success'] === null ? null : (bool) $row['success'],
-        'service_id' => $row['service_id'],
+        'error_code' => !$transaction['success'] ? 'CLIENT_CANCEL' : '', // CLIENT_CANCEL
+        'ctime' => $transaction['ctime'],
+        'mtime' => $transaction['mtime'],
+        'success' => $transaction['success'] === null ? null : (bool) $transaction['success'],
+        'service_id' => $offer['service_id'],
         'type_asked' => null,
         'mode_asked' => '',
-        'customer_id' => null,
-        'customer_editor_id' => $row['customer_editor_id'],
-        'offer_id' => null,
+        'customer_id' => 123,
+        'customer_editor_id' => $transaction['customer_editor_id'],
+        'offer_id' => $offer['id'],
         'mode_used' => 'auto_best',
         'customer_handset_type' => 'PC',
         'customer_operator' => 'SFR',

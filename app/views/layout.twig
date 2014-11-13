@@ -1,18 +1,30 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <style>
-        table {
-            border-collapse: collapse;
-        }
-        table td,
-        table th {
-            border: 1px solid black;
-            padding: 5px;
-        }
-        </style>
-    </head>
-    <body>
-        {% block content %}{% endblock %}
-    </body>
+  <head>
+    <title>Cellpass Fake API</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <style>
+      body {
+        padding-top: 70px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/admin/">Cellpass Fake API</a>
+        </div>
+        <ul class="nav navbar-nav">
+          <li><a href="/admin/services/">Services</a></li>
+          <li><a href="/admin/offers/">Offers</a></li>
+          <li><a href="/admin/transactions/">Transactions</a></li>
+          <li><a href="/admin/subscriptions/">Subscriptions</a></li>
+        </ul>
+      </div>
+    </nav>
+    <div class="container">
+    {% block content %}{% endblock %}
+    </div>
+  </body>
 </html>

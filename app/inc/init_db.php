@@ -1,9 +1,8 @@
 <?php
 
 $app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_transaction (
-    transaction_id TEXT NOT NULL,
-    service_id INTEGER NOT NULL,
-    editor_id INTEGER NOT NULL,
+    id TEXT NOT NULL,
+    offer_id INTEGER NOT NULL,
     customer_editor_id TEXT DEFAULT NULL,
     state TEXT DEFAULT NULL,
     state_value TEXT DEFAULT NULL,
@@ -24,19 +23,20 @@ $app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_offer (
     service_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
-    price INTEGER NOT NULL
+    price INTEGER NOT NULL,
+    operator TEXT NOT NULL
 )');
 
 $app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_customer (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    editor_id TEXT DEFAULT NULL
+    editor_id TEXT NOT NULL
 )');
 
-$app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_sub (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+$app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_subscription (
+    id TEXT NOT NULL PRIMARY KEY,
     customer_id INTEGER NOT NULL,
     offer_id INTEGER NOT NULL,
     date_sub TEXT NOT NULL,
-    date_unsub TEXT NOT NULL,
-    date_eff_unsub TEXT NOT NULL
+    date_unsub TEXT DEFAULT NULL,
+    date_eff_unsub TEXT DEFAULT NULL
 )');

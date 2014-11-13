@@ -1,0 +1,20 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <div class="page-header">
+    <h3>Services</h3>
+  </div>
+  <table class="table">
+    <thead>
+      <th>#</th>
+      <th>Name</th>
+    </thead>
+    {% for service in services %}
+    <tr>
+      <td><a href="/admin/services/{{ service.id }}/">{{service.id}}</a></td>
+      <td>{{service.name}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <a href="/admin/services/new/" class="btn btn-primary">Add a new service</a>
+{% endblock %}

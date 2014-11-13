@@ -1,0 +1,21 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <div class="page-header">
+    <h3>Subscriptions</h3>
+  </div>
+  <table class="table">
+    <thead>
+      <th>#</th>
+      <th>Customer #</th>
+      <th>Offer #</th>
+    </thead>
+    {% for subscription in subscriptions %}
+    <tr>
+      <td><a href="#">{{subscription.id}}</a></td>
+      <td>{{subscription.customer_id}}</td>
+      <td>{{subscription.offer_id}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <div class="page-header">
+    <h3>Offers</h3>
+  </div>
+  <table class="table">
+    <thead>
+      <th>#</th>
+      <th>Service #</th>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Price</th>
+      <th>Operator</th>
+    </thead>
+    {% for offer in offers %}
+    <tr>
+      <td><a href="/admin/offers/{{ offer.id }}/">{{offer.id}}</a></td>
+      <td>{{offer.service_id}}</td>
+      <td>{{offer.name}}</td>
+      <td>{{offer.type}}</td>
+      <td>{{offer.price}}</td>
+      <td>{{offer.operator}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <a href="/admin/offers/new/" class="btn btn-primary">Add a new offer</a>
+{% endblock %}

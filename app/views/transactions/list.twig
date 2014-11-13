@@ -1,0 +1,29 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <div class="page-header">
+    <h3>Transactions</h3>
+  </div>
+  <table class="table">
+    <thead>
+      <th>#</th>
+      <th>Offer #</th>
+      <th>Customer Editor ID</th>
+      <th>URL OK</th>
+      <th>URL KO</th>
+      <th>State</th>
+      <th>Success</th>
+    </thead>
+    {% for transaction in transactions %}
+    <tr>
+      <td>{{transaction.id}}</td>
+      <td>{{transaction.offer_id}}</td>
+      <td>{{transaction.customer_editor_id}}</td>
+      <td>{{transaction.url_ok}}</td>
+      <td>{{transaction.url_ko}}</td>
+      <td>{{transaction.state}}</td>
+      <td>{{transaction.success|var_export}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+{% endblock %}
