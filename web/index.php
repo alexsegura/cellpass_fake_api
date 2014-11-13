@@ -158,7 +158,6 @@ $app->get('/cellpass/init/', function (Request $request) use ($app) {
 $app->get('/cellpass/end/', function (Request $request) use ($app) {
 
     $transaction_id = $request->query->get('transaction_id');
-    $editor_id = $request->query->get('editor_id');
 
     if (!$transaction = $app['repository.transaction']->find($transaction_id)) {
         // TODO 404
@@ -193,6 +192,30 @@ $app->get('/cellpass/end/', function (Request $request) use ($app) {
         'customer_operator_type' => 'box',
         'customer_operator_country' => 'FR',
         'mc' => '',
+        'status' => 'success'
+    ];
+
+    return $app->json($json);
+});
+
+$app->get('/cellpass/synchro/', function (Request $request) use ($app) {
+
+    $sql = 'SELECT s.id, o.service_id, s.offer_id, s.customer_id, c.editor_id AS customer_editor_id, o.operator AS offer_operator, s.date_sub, s.date_unsub, s.date_eff_unsub'
+    . ' FROM cellpass_subscription s'
+    . ' JOIN cellpass_customer c ON s.customer_id = c.id'
+    . ' JOIN cellpass_offer o ON s.offer_id = o.id';
+
+    $stmt = $app['db']->prepare($sql);
+    $stmt->execute();
+
+    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    array_walk($rows, function(&$row) {
+        $row['type'] = 'sub';
+    });
+
+    $json = [
+        'data' => $rows,
         'status' => 'success'
     ];
 
