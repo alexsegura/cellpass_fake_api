@@ -58,6 +58,8 @@ $app['operators'] = $app->share(function($app) {
     return ['bt', 'orange', 'sfr', 'free'];
 });
 
+define('API_SECRET', '0123456789');
+
 //
 // Routing
 //
@@ -225,6 +227,40 @@ $app->get('/cellpass/synchro/', function (Request $request) use ($app) {
     ];
 
     return $app->json($json);
+});
+
+$app->get('/cellpass/id/', function (Request $request) use ($app) {
+    $params = $request->query->all();
+
+    return $app->json([
+        'url' => 'http://' . $_SERVER['HTTP_HOST'] . '/id/?' . http_build_query($params),
+        'status' => 'success'
+    ]);
+});
+
+$app->get('/id/', function (Request $request) use ($app) {
+
+    $params = $request->query->all();
+
+    $url = $params['url'];
+    unset(
+        $params['url'],
+        $params['ts'],
+        $params['rnd'],
+        $params['sign']
+    );
+
+    $customer_params = [
+        'customer_ip' => $_SERVER['REMOTE_ADDR'],
+        'customer_operator' => 'Orange',
+        'customer_operator_type' => 'box',
+        'customer_operator_country' => 'FR',
+        'customer_handset_type' => 'PC'
+    ];
+
+    $url .= '&' . http_build_query(array_merge($customer_params, $params));
+
+    return $app->redirect(Cellpass\Utils::signURL($url));
 });
 
 $app->run();
