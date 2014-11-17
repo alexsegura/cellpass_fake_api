@@ -13,6 +13,18 @@ $app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_transaction (
     mtime TEXT NOT NULL
 )');
 
+$app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_resil_transaction (
+    id TEXT NOT NULL PRIMARY KEY,
+    subscription_id TEXT NOT NULL,
+    state TEXT DEFAULT NULL,
+    state_value TEXT DEFAULT NULL,
+    url_ok TEXT NOT NULL,
+    url_ko TEXT DEFAULT NULL,
+    success INTEGER DEFAULT NULL,
+    ctime TEXT NOT NULL,
+    mtime TEXT NOT NULL
+)');
+
 $app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_service (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT DEFAULT NULL

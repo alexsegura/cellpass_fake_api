@@ -46,6 +46,10 @@ $app['repository.transaction'] = $app->share(function($app) {
     return new Cellpass\TransactionRepository($app['db']);
 });
 
+$app['repository.resil_transaction'] = $app->share(function($app) {
+    return new Cellpass\ResilTransactionRepository($app['db']);
+});
+
 $app['repository.customer'] = $app->share(function($app) {
     return new Cellpass\CustomerRepository($app['db']);
 });
@@ -77,13 +81,22 @@ require __DIR__ . '/../app/controllers/customers.php';
 $app->get('/router/', function(Request $request) use ($app) {
 
     $transaction_id = $request->query->get('transaction_id');
+    $type = $request->query->get('type');
 
-    $transaction = $app['repository.transaction']->find($transaction_id);
-    $offer = $app['repository.offer']->find($transaction['offer_id']);
+    if ($type == 'resil') {
+        $transaction = $app['repository.resil_transaction']->find($transaction_id);
+        $subscription = $app['repository.subscription']->find($transaction['subscription_id']);
+        $offer = $app['repository.offer']->find($subscription['offer_id']);
+        $operator = $offer['operator'];
 
-    $operator = $offer['operator'];
+        return $app->redirect("/operator/{$operator}/resil/?transaction_id={$transaction_id}");
+    } else {
+        $transaction = $app['repository.transaction']->find($transaction_id);
+        $offer = $app['repository.offer']->find($transaction['offer_id']);
+        $operator = $offer['operator'];
 
-    return $app->redirect("/operator/{$operator}/?transaction_id={$transaction_id}");
+        return $app->redirect("/operator/{$operator}/?transaction_id={$transaction_id}");
+    }
 });
 
 $app->get('/operator/{operator}/', function(Request $request) use ($app) {
@@ -125,6 +138,50 @@ $app->post('/operator/{operator}/', function(Request $request) use ($app) {
             'id' => $transaction['id'],
             'customer_id' => $customer['id'],
             'offer_id' => $transaction['offer_id']
+        ]);
+
+        $redirect_url = $transaction['url_ok'];
+    } else {
+        $redirect_url = $transaction['url_ko'] ?: $transaction['url_ok'];
+    }
+
+    $url = $redirect_url . '?transaction_id=' . $transaction_id;
+
+    return $app->redirect($url);
+});
+
+
+$app->get('/operator/{operator}/resil/', function(Request $request) use ($app) {
+
+    $transaction_id = $request->query->get('transaction_id');
+
+    if (!$transaction = $app['repository.resil_transaction']->find($transaction_id)) {
+        // TODO 404
+    }
+
+    $subscription = $app['repository.subscription']->find($transaction['subscription_id']);
+    $offer = $app['repository.offer']->find($subscription['offer_id']);
+
+    return $app['twig']->render('resil_operator.twig', [
+        'transaction' => $transaction,
+        'offer' => $offer
+    ]);
+});
+
+$app->post('/operator/{operator}/resil/', function(Request $request) use ($app) {
+
+    $success = (null !== $request->request->get('confirm'));
+    $transaction_id = $request->query->get('transaction_id');
+
+    if (!$transaction = $app['repository.resil_transaction']->find($transaction_id)) {
+        // TODO 404
+    }
+
+    if ($success) {
+
+        $subscription = $app['repository.subscription']->update($transaction['subscription_id'], [
+            'date_unsub' => date('Y-m-d H:i:s'),
+            'date_eff_unsub' => date('Y-m-d H:i:s', strtotime('+1 MONTH'))
         ]);
 
         $redirect_url = $transaction['url_ok'];
@@ -262,5 +319,21 @@ $app->get('/id/', function (Request $request) use ($app) {
 
     return $app->redirect(Cellpass\Utils::signURL($url));
 });
+
+$app->get('/cellpass/init_resil/', function (Request $request) use ($app) {
+
+    $data = $request->query->all();
+
+    $transaction_id = $app['repository.resil_transaction']->create($data);
+
+    $json = [
+        'transaction_id' => $transaction_id,
+        'url' => 'http://' . $_SERVER['HTTP_HOST'] . '/router/?transaction_id=' . $transaction_id . '&type=resil',
+        'status' => 'success'
+    ];
+
+    return $app->json($json);
+});
+
 
 $app->run();

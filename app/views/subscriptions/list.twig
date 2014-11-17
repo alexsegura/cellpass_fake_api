@@ -10,6 +10,8 @@
       <th>Customer #</th>
       <th>Offer #</th>
       <th>Date Sub</th>
+      <th>Date Unsub</th>
+      <th>Date Eff Unsub</th>
     </thead>
     {% for subscription in subscriptions %}
     <tr>
@@ -17,6 +19,8 @@
       <td>{{subscription.customer_id}}</td>
       <td>{{subscription.offer_id}}</td>
       <td>{{subscription.date_sub}}</td>
+      <td>{{subscription.date_unsub}}</td>
+      <td>{{subscription.date_eff_unsub}}</td>
     </tr>
     {% endfor %}
   </table>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Cellpass Fake API</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <style>
+    body {
+    padding-top: 70px;
+    }
+  </style>
+  </head>
+  <body>
+  <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/admin/">Cellpass Fake API</a>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-4 col-md-offset-4">
+        <form method="post">
+          <div class="alert alert-info" style="text-align: center;">Do you really want to unsubscribe from {{offer.name}} ?</div>
+          <input type="hidden" name="transaction_id" value="{{ transaction.id }}">
+          <input type="submit" name="confirm" value="Confirm" class="btn btn-block btn-success">
+          <input type="submit" name="cancel" value="Cancel" class="btn btn-block btn-warning">
+        </form>
+      </div>
+    </div>
+  </div>
+  </body>
+</html>

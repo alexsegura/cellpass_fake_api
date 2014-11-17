@@ -29,11 +29,48 @@ class SubscriptionRepository
         return $id;
     }
 
+    public function find($id)
+    {
+        $stmt = $this->conn->prepare('SELECT * FROM cellpass_subscription WHERE id = :id');
+        $stmt->bindValue(':id', $id);
+        $stmt->execute();
+
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
     public function findAll()
     {
         $stmt = $this->conn->prepare('SELECT * FROM cellpass_subscription');
         $stmt->execute();
 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    public function update($id, array $data = array())
+    {
+        $keys = ['date_unsub', 'date_eff_unsub'];
+        $fields = [];
+        foreach ($keys as $key) {
+            if (isset($data[$key])) {
+                $fields[] = "$key = :$key";
+            }
+        }
+
+        if (!empty($fields)) {
+            $sql = 'UPDATE cellpass_subscription SET ' . implode(', ', $fields) . ' WHERE id = :id';
+
+            $stmt = $this->conn->prepare($sql);
+
+            foreach ($keys as $key) {
+                if (isset($data[$key])) {
+                    $stmt->bindValue(":$key", $data[$key]);
+                }
+            }
+
+            $stmt->bindValue(':id', $id);
+            $stmt->execute();
+        }
+
+
     }
 }
