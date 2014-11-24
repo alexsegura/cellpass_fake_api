@@ -65,9 +65,9 @@ $app->get('/cellpass/end/', function (Request $request) use ($app) {
         'customer_operator_id' => null,
         'customer_ip' => $_SERVER['REMOTE_ADDR'],
         'state' => 'end',
-        'state_value' => '', // Client cancel the billing
-        'error' => '',
-        'error_code' => !$transaction['success'] ? 'CLIENT_CANCEL' : '', // CLIENT_CANCEL
+        'state_value' => $transaction['state_value'],
+        'error' => $transaction['error'],
+        'error_code' => $transaction['error_code'],
         'ctime' => $transaction['ctime'],
         'mtime' => $transaction['mtime'],
         'success' => $transaction['success'] === null ? null : (bool) $transaction['success'],

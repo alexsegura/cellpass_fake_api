@@ -60,7 +60,7 @@ class TransactionRepository
 
     public function update($id, array $data = array())
     {
-        $keys = ['state', 'state_value', 'error', 'error_code'];
+        $keys = ['success', 'state', 'state_value', 'error', 'error_code'];
         $fields = [];
         foreach ($keys as $key) {
             if (isset($data[$key])) {
@@ -82,14 +82,6 @@ class TransactionRepository
             $stmt->bindValue(':id', $id);
             $stmt->execute();
         }
-    }
-
-    public function updateSuccess($id, $success)
-    {
-        $stmt = $this->conn->prepare('UPDATE cellpass_transaction SET success = :success, mtime = DATETIME("NOW") WHERE id = :id');
-        $stmt->bindValue(':success', $success ? 1 : 0);
-        $stmt->bindValue(':id', $id);
-        $stmt->execute();
     }
 
     public function updateState($id, $state)

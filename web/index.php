@@ -130,7 +130,9 @@ $app->post('/operator/{operator}/', function(Request $request) use ($app) {
     $transaction_id = $request->query->get('transaction_id');
     $success = (null !== $request->request->get('confirm'));
 
-    $app['repository.transaction']->updateSuccess($transaction_id, $success);
+    $app['repository.transaction']->update($transaction_id, [
+        'success' => $success ? 1 : 0
+    ]);
 
     $transaction = $app['repository.transaction']->find($transaction_id);
 
@@ -151,12 +153,11 @@ $app->post('/operator/{operator}/', function(Request $request) use ($app) {
         $redirect_url = $transaction['url_ok'];
     } else {
 
-        if (null !== ($state = $request->request->get('state'))) {
-            $app['repository.transaction']->update($transaction_id, [
-                'error_code' => $state,
-                'state_value' => Cellpass\StateValue::getValue($state)
-            ]);
-        }
+        $state = null !== $request->request->get('state') ? $request->request->get('state') : 'CLIENT_CANCEL';
+        $app['repository.transaction']->update($transaction_id, [
+            'error_code' => $state,
+            'state_value' => Cellpass\StateValue::getValue($state)
+        ]);
 
         $redirect_url = $transaction['url_ko'] ?: $transaction['url_ok'];
     }
@@ -193,7 +194,9 @@ $app->post('/operator/{operator}/resil/', function(Request $request) use ($app) 
         // TODO 404
     }
 
-    $app['repository.transaction']->updateSuccess($transaction_id, $success);
+    $app['repository.transaction']->update($transaction_id, [
+        'success' => $success ? 1 : 0
+    ]);
 
     if ($success) {
 
