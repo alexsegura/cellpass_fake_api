@@ -16,7 +16,7 @@
     </thead>
     {% for transaction in transactions %}
     <tr class="{% if transaction.type == 'init' %}success{% else %}warning{% endif %}">
-      <td>{{transaction.id}}</td>
+      <td><a href="/admin/transactions/{{transaction.id}}/">{{transaction.id}}</a></td>
       <td>{{transaction.type}}</td>
       <td><a href="/admin/offers/{{transaction.offer_id}}/">{{transaction.offer_id}}</a></td>
       <td>{{transaction.customer_editor_id}}</td>

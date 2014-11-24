@@ -1,0 +1,15 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <div class="page-header">
+    <h3>Transaction {{transaction.id}}</h3>
+  </div>
+  <table class="table">
+    {% for key, value in transaction %}
+    <tr>
+      <td>{{key}}</td>
+      <td>{{value}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+{% endblock %}
