@@ -46,10 +46,6 @@ $app['repository.transaction'] = $app->share(function($app) {
     return new Cellpass\TransactionRepository($app['db']);
 });
 
-$app['repository.resil_transaction'] = $app->share(function($app) {
-    return new Cellpass\ResilTransactionRepository($app['db']);
-});
-
 $app['repository.customer'] = $app->share(function($app) {
     return new Cellpass\CustomerRepository($app['db']);
 });
@@ -82,21 +78,29 @@ require __DIR__ . '/../app/controllers/customers.php';
 $app->get('/router/', function(Request $request) use ($app) {
 
     $transaction_id = $request->query->get('transaction_id');
-    $type = $request->query->get('type');
 
-    if ($type == 'resil') {
-        $transaction = $app['repository.resil_transaction']->find($transaction_id);
-        $subscription = $app['repository.subscription']->find($transaction['subscription_id']);
-        $offer = $app['repository.offer']->find($subscription['offer_id']);
-        $operator = $offer['operator'];
+    if (!$transaction = $app['repository.transaction']->find($transaction_id)) {
+        // TODO 404
+    }
 
-        return $app->redirect("/operator/{$operator}/resil/?transaction_id={$transaction_id}");
-    } else {
-        $transaction = $app['repository.transaction']->find($transaction_id);
-        $offer = $app['repository.offer']->find($transaction['offer_id']);
-        $operator = $offer['operator'];
+    switch ($transaction['type']) {
+        case 'init' :
+            $transaction = $app['repository.transaction']->find($transaction_id);
+            $offer = $app['repository.offer']->find($transaction['offer_id']);
+            $operator = $offer['operator'];
 
-        return $app->redirect("/operator/{$operator}/?transaction_id={$transaction_id}");
+            return $app->redirect("/operator/{$operator}/?transaction_id={$transaction_id}");
+
+            break;
+
+        case 'init_resil' :
+            $subscription = $app['repository.subscription']->find($transaction['subscription_id']);
+            $offer = $app['repository.offer']->find($subscription['offer_id']);
+            $operator = $offer['operator'];
+
+            return $app->redirect("/operator/{$operator}/resil/?transaction_id={$transaction_id}");
+
+            break;
     }
 });
 
@@ -112,16 +116,19 @@ $app->get('/operator/{operator}/', function(Request $request) use ($app) {
 
     $offer = $app['repository.offer']->find($transaction['offer_id']);
 
+    $states = Cellpass\StateValue::toArray();
+
     return $app['twig']->render('operator.twig', [
         'transaction' => $transaction,
-        'offer' => $offer
+        'offer' => $offer,
+        'states' => $states
     ]);
 });
 
 $app->post('/operator/{operator}/', function(Request $request) use ($app) {
 
-    $success = (null !== $request->request->get('confirm'));
     $transaction_id = $request->query->get('transaction_id');
+    $success = (null !== $request->request->get('confirm'));
 
     $app['repository.transaction']->updateSuccess($transaction_id, $success);
 
@@ -143,6 +150,14 @@ $app->post('/operator/{operator}/', function(Request $request) use ($app) {
 
         $redirect_url = $transaction['url_ok'];
     } else {
+
+        if (null !== ($state = $request->request->get('state'))) {
+            $app['repository.transaction']->update($transaction_id, [
+                'error_code' => $state,
+                'state_value' => Cellpass\StateValue::getValue($state)
+            ]);
+        }
+
         $redirect_url = $transaction['url_ko'] ?: $transaction['url_ok'];
     }
 
@@ -156,7 +171,7 @@ $app->get('/operator/{operator}/resil/', function(Request $request) use ($app) {
 
     $transaction_id = $request->query->get('transaction_id');
 
-    if (!$transaction = $app['repository.resil_transaction']->find($transaction_id)) {
+    if (!$transaction = $app['repository.transaction']->find($transaction_id)) {
         // TODO 404
     }
 
@@ -174,9 +189,11 @@ $app->post('/operator/{operator}/resil/', function(Request $request) use ($app) 
     $success = (null !== $request->request->get('confirm'));
     $transaction_id = $request->query->get('transaction_id');
 
-    if (!$transaction = $app['repository.resil_transaction']->find($transaction_id)) {
+    if (!$transaction = $app['repository.transaction']->find($transaction_id)) {
         // TODO 404
     }
+
+    $app['repository.transaction']->updateSuccess($transaction_id, $success);
 
     if ($success) {
 

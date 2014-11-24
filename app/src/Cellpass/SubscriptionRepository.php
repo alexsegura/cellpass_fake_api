@@ -70,7 +70,5 @@ class SubscriptionRepository
             $stmt->bindValue(':id', $id);
             $stmt->execute();
         }
-
-
     }
 }

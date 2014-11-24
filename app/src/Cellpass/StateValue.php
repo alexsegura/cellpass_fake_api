@@ -31,4 +31,10 @@ class StateValue
 
         return $constants;
     }
+
+    public static function getValue($code)
+    {
+        $values = self::toArray();
+        return $values[$code];
+    }
 }

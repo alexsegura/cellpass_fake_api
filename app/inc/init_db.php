@@ -2,22 +2,14 @@
 
 $app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_transaction (
     id TEXT NOT NULL,
-    offer_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    offer_id INTEGER DEFAULT NULL,
     customer_editor_id TEXT DEFAULT NULL,
+    subscription_id INTEGER DEFAULT NULL,
     state TEXT DEFAULT NULL,
     state_value TEXT DEFAULT NULL,
-    url_ok TEXT NOT NULL,
-    url_ko TEXT DEFAULT NULL,
-    success INTEGER DEFAULT NULL,
-    ctime TEXT NOT NULL,
-    mtime TEXT NOT NULL
-)');
-
-$app['db']->query('CREATE TABLE IF NOT EXISTS cellpass_resil_transaction (
-    id TEXT NOT NULL PRIMARY KEY,
-    subscription_id TEXT NOT NULL,
-    state TEXT DEFAULT NULL,
-    state_value TEXT DEFAULT NULL,
+    error TEXT DEFAULT NULL,
+    error_code TEXT DEFAULT NULL,
     url_ok TEXT NOT NULL,
     url_ko TEXT DEFAULT NULL,
     success INTEGER DEFAULT NULL,

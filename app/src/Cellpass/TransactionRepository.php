@@ -15,7 +15,7 @@ class TransactionRepository
 
     public function findAll()
     {
-        $stmt = $this->conn->prepare('SELECT * FROM cellpass_transaction');
+        $stmt = $this->conn->prepare('SELECT * FROM cellpass_transaction ORDER BY ctime DESC');
         $stmt->execute();
 
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -39,21 +39,49 @@ class TransactionRepository
     public function create(array $data = array())
     {
         $sql =
-        'INSERT INTO cellpass_transaction (id, offer_id, customer_editor_id, state, url_ok, url_ko, ctime, mtime)'
+        'INSERT INTO cellpass_transaction (id, type, offer_id, customer_editor_id, subscription_id, state, url_ok, url_ko, ctime, mtime)'
         . ' VALUES '
-        . '(:id, :offer_id, :customer_editor_id, "init", :url_ok, :url_ko, DATETIME("now"), DATETIME("now"))';
+        . '(:id, :type, :offer_id, :customer_editor_id, :subscription_id, "init", :url_ok, :url_ko, DATETIME("now"), DATETIME("now"))';
 
         $id = md5(time());
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $id);
-        $stmt->bindValue(':offer_id', $data['offer_id']);
-        $stmt->bindValue(':customer_editor_id', $data['customer_editor_id']);
+        $stmt->bindValue(':type', $data['type']);
+        $stmt->bindValue(':offer_id', isset($data['offer_id']) ? $data['offer_id'] : null);
+        $stmt->bindValue(':customer_editor_id', isset($data['customer_editor_id']) ? $data['customer_editor_id'] : null);
+        $stmt->bindValue(':subscription_id', isset($data['subscription_id']) ? $data['subscription_id'] : null);
         $stmt->bindValue(':url_ok', $data['url_ok']);
         $stmt->bindValue(':url_ko', isset($data['url_ko']) ? $data['url_ko'] : null);
         $stmt->execute();
 
         return $id;
+    }
+
+    public function update($id, array $data = array())
+    {
+        $keys = ['state', 'state_value', 'error', 'error_code'];
+        $fields = [];
+        foreach ($keys as $key) {
+            if (isset($data[$key])) {
+                $fields[] = "$key = :$key";
+            }
+        }
+
+        if (!empty($fields)) {
+            $sql = 'UPDATE cellpass_transaction SET ' . implode(', ', $fields) . ' WHERE id = :id';
+
+            $stmt = $this->conn->prepare($sql);
+
+            foreach ($keys as $key) {
+                if (isset($data[$key])) {
+                    $stmt->bindValue(":$key", $data[$key]);
+                }
+            }
+
+            $stmt->bindValue(':id', $id);
+            $stmt->execute();
+        }
     }
 
     public function updateSuccess($id, $success)

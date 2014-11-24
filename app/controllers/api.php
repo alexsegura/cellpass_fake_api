@@ -6,6 +6,8 @@ $app->get('/cellpass/init/', function (Request $request) use ($app) {
 
     $data = $request->query->all();
 
+    $data['type'] = 'init';
+
     $offerRepository = $app['repository.offer'];
     $offers = $offerRepository->findByServiceId($data['service_id']);
 
@@ -13,6 +15,23 @@ $app->get('/cellpass/init/', function (Request $request) use ($app) {
     $offer = array_shift($offers);
 
     $data['offer_id'] = $offer['id'];
+
+    $transaction_id = $app['repository.transaction']->create($data);
+
+    $json = [
+        'transaction_id' => $transaction_id,
+        'url' => 'http://' . $_SERVER['HTTP_HOST'] . '/router/?transaction_id=' . $transaction_id,
+        'status' => 'success'
+    ];
+
+    return $app->json($json);
+});
+
+$app->get('/cellpass/init_resil/', function (Request $request) use ($app) {
+
+    $data = $request->query->all();
+
+    $data['type'] = 'init_resil';
 
     $transaction_id = $app['repository.transaction']->create($data);
 
@@ -67,6 +86,11 @@ $app->get('/cellpass/end/', function (Request $request) use ($app) {
         'status' => 'success'
     ];
 
+    if (isset($transaction['subscription_id'])) {
+        $subscription = $app['repository.subscription']->find($transaction['subscription_id']);
+        $json['subscription'] = $subscription;
+    }
+
     return $app->json($json);
 });
 
@@ -103,17 +127,4 @@ $app->get('/cellpass/id/', function (Request $request) use ($app) {
     ]);
 });
 
-$app->get('/cellpass/init_resil/', function (Request $request) use ($app) {
 
-    $data = $request->query->all();
-
-    $transaction_id = $app['repository.resil_transaction']->create($data);
-
-    $json = [
-        'transaction_id' => $transaction_id,
-        'url' => 'http://' . $_SERVER['HTTP_HOST'] . '/router/?transaction_id=' . $transaction_id . '&type=resil',
-        'status' => 'success'
-    ];
-
-    return $app->json($json);
-});

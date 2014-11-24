@@ -25,6 +25,13 @@
           <input type="hidden" name="transaction_id" value="{{ transaction.id }}">
           <input type="submit" name="confirm" value="Confirm" class="btn btn-block btn-success">
           <input type="submit" name="cancel" value="Cancel" class="btn btn-block btn-warning">
+
+          <hr>
+
+          {% for state in states|keys %}
+            <input type="submit" name="state" value="{{state}}" class="btn btn-block btn-danger">
+          {% endfor %}
+
         </form>
       </div>
     </div>
