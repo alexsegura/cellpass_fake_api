@@ -110,8 +110,28 @@ $app->get('/cellpass/synchro/', function (Request $request) use ($app) {
         $row['type'] = 'sub';
     });
 
+    $filters = [
+        'id' => $request->query->get('id'),
+        'offer_id' => $request->query->get('offer_id'),
+        'customer_editor_id' => $request->query->get('customer_editor_id'),
+        'customer_id' => $request->query->get('customer_id'),
+        'type' => $request->query->get('type')
+    ];
+
+    $rows = array_filter($rows, function($row) use ($filters) {
+        foreach ($filters as $key => $value) {
+            if (!empty($value)) {
+                if ($row[$key] != $value) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    });
+
     $json = [
-        'data' => $rows,
+        'data' => array_values($rows),
         'status' => 'success'
     ];
 
