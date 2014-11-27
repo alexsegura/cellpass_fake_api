@@ -41,7 +41,7 @@ class TransactionRepository
         $sql =
         'INSERT INTO cellpass_transaction (id, type, offer_id, customer_editor_id, subscription_id, state, url_ok, url_ko, ctime, mtime)'
         . ' VALUES '
-        . '(:id, :type, :offer_id, :customer_editor_id, :subscription_id, "init", :url_ok, :url_ko, DATETIME("now"), DATETIME("now"))';
+        . '(:id, :type, :offer_id, :customer_editor_id, :subscription_id, "init", :url_ok, :url_ko, :ctime, :mtime)';
 
         $id = md5(time());
 
@@ -53,6 +53,8 @@ class TransactionRepository
         $stmt->bindValue(':subscription_id', isset($data['subscription_id']) ? $data['subscription_id'] : null);
         $stmt->bindValue(':url_ok', $data['url_ok']);
         $stmt->bindValue(':url_ko', isset($data['url_ko']) ? $data['url_ko'] : null);
+        $stmt->bindValue(':ctime', date('Y-m-d H:i:s'));
+        $stmt->bindValue(':mtime', date('Y-m-d H:i:s'));
         $stmt->execute();
 
         return $id;
@@ -86,9 +88,10 @@ class TransactionRepository
 
     public function updateState($id, $state)
     {
-        $stmt = $this->conn->prepare('UPDATE cellpass_transaction SET state = :state, mtime = DATETIME("NOW") WHERE id = :id');
+        $stmt = $this->conn->prepare('UPDATE cellpass_transaction SET state = :state, mtime = :mtime WHERE id = :id');
         $stmt->bindValue(':state', $state);
         $stmt->bindValue(':id', $id);
+        $stmt->bindValue(':mtime', date('Y-m-d H:i:s'));
         $stmt->execute();
     }
 }

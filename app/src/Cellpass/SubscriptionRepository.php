@@ -18,12 +18,13 @@ class SubscriptionRepository
         $sql =
         'INSERT INTO cellpass_subscription (id, customer_id, offer_id, date_sub)'
         . ' VALUES '
-        . '(:id, :customer_id, :offer_id, DATETIME("now"))';
+        . '(:id, :customer_id, :offer_id, :date_sub)';
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':id', $data['id']);
         $stmt->bindValue(':customer_id', $data['customer_id']);
         $stmt->bindValue(':offer_id', $data['offer_id']);
+        $stmt->bindValue(':date_sub', date('Y-m-d H:i:s'));
         $stmt->execute();
 
         return $id;
